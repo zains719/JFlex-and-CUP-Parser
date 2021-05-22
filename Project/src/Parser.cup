@@ -1,0 +1,299 @@
+import java_cup.runtime.*;
+
+scan with {: return lexer.next_token(); :};
+
+parser code {:
+
+  static class ErrorInfo {
+    public int line;
+    public int column;
+
+    public ErrorInfo(int line, int column) {
+      this.line = line;
+      this.column = column;
+    }
+  }
+
+  Lexer lexer;
+
+  // used by SC.java to decide whether parsing is successful
+  public boolean syntaxErrors;
+
+  public Parser(Lexer lex) {
+      super(lex);
+      lexer = lex;
+  }
+
+  public void syntax_error(Symbol cur_token) {
+    this.syntaxErrors = true;
+  }
+
+  public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+    this.syntaxErrors = true;
+    report_fatal_error(
+      "Syntax error at line " + (cur_token.left+1) + ", column "
+      + cur_token.right + ".\n", null
+    );
+  }
+
+  public void custom_err_report(String message, int line, int column)
+    throws java.lang.Exception
+  {
+    this.syntaxErrors = true;
+    report_fatal_error( message + "\n", new ErrorInfo(line, column) );
+  }
+
+:};
+
+/* Your code goes here */
+/* Your code goes here */
+/* Your code goes here */
+
+/* Terminals */
+terminal          BOOL, INT, RAT, FLOAT, CHAR, STR, TOP, SEQ, DICT;                       
+terminal          MAIN, TDEF, FDEF, LENGTH, QUESTION, FOR, OF, RANGE, ALIAS, READ, THREAD, WAIT, PRINT, RETURN;
+terminal          IF, ELIF, ELSE, WHILE, BREAK;
+terminal          EQUAL, PLUS, MINUS, MULT, DIV, POW;
+terminal          LTEQ, NOTEQ, LT, GT, NOT, EQUALTO, AND, OR;
+terminal          LPAREN, RPAREN, LSQB, RSQB, LBRACE, RBRACE, COLON, SEMI, COMMA, DOT;
+terminal          ILLEGAL_CHARACTER;
+
+terminal          BOOLEAN, INTEGER, RATIONAL, FLOATING, CHARACTER, STRING_LITERAL, IDENTIFIER;
+
+/* Non Terminals */
+non terminal      program, main_function, body, declaration_list;
+non terminal      declaration, variable_declaration, type_definition, function_definition, parameters, parameters_aux;
+non terminal      data_types, type, sequence_type, sequence_contents, dict_contents, dict_contents_body, dict_contents_body_aux;
+non terminal      statement_list, statement, assignment_statement, read_statement, print_statement, function_call, function_call_parameters, if_statement, if_statement_aux, thread_statement, wait_statement, return_statement, while_statement, body_break, statement_list_break, statement_break, break, if_break_statement, if_break_statement_aux;
+non terminal      list_of_expressions, expression, math_operator, comparison_operator, list_comprehension, range_parameters, range_parameter_expression, predicate_clause, identifier, field_access, slice_expression; 
+
+/* Precedence */
+precedence  left     PLUS, MINUS, OR;
+precedence  left     MULT, DIV, AND;
+precedence  right    POW, QUESTION;
+precedence  left     LPAREN, RPAREN, LSQB, RSQB;
+precedence  nonassoc NOT, LTEQ, NOTEQ, LT, GT, EQUALTO;
+
+/* The Grammaar */
+start with program;
+
+program ::= main_function
+         |  declaration_list main_function
+         |  main_function declaration_list
+         |  declaration_list main_function declaration_list
+         ;
+
+main_function ::= FDEF MAIN LPAREN RPAREN LBRACE body RBRACE SEMI;
+
+body ::= declaration_list 
+      |  statement_list 
+      |  declaration_list statement_list
+      ;
+
+declaration_list ::= declaration
+                  |  declaration_list declaration
+                  ;
+      
+declaration ::= type_definition
+             |  variable_declaration SEMI
+             |  variable_declaration EQUAL list_of_expressions SEMI
+             |  function_definition
+             |  ALIAS type IDENTIFIER SEMI 
+             ;
+
+variable_declaration ::= type IDENTIFIER;
+
+type_definition ::= TDEF IDENTIFIER LBRACE parameters RBRACE SEMI;
+
+function_definition ::= FDEF type IDENTIFIER LPAREN parameters RPAREN LBRACE body RBRACE SEMI
+                     |  FDEF IDENTIFIER LPAREN parameters RPAREN LBRACE body RBRACE SEMI
+                     ;
+
+parameters ::= variable_declaration parameters_aux
+            |  
+            ;
+
+parameters_aux ::= COMMA variable_declaration parameters_aux
+               |  
+               ;
+
+data_types ::= BOOLEAN
+            |  INTEGER
+            |  RATIONAL
+            |  FLOATING
+            |  CHARACTER
+            ;
+
+type ::= BOOL
+      |  INT 
+      |  RAT
+      |  FLOAT
+      |  CHAR
+      |  STR
+      |  IDENTIFIER
+      |  SEQ LT sequence_type GT
+      |  DICT LT sequence_type COMMA sequence_type GT
+      ;
+
+sequence_type ::= type
+               |  TOP
+               ;
+
+sequence_contents ::= LSQB list_of_expressions RSQB
+                   |  LSQB RSQB
+                   |  STRING_LITERAL
+                   ;
+
+dict_contents ::= LPAREN dict_contents_body RPAREN
+               |  LPAREN RPAREN
+               ;
+
+dict_contents_body ::= dict_contents_body_aux
+                   |   dict_contents_body COMMA dict_contents_body_aux  
+                   ;             
+
+dict_contents_body_aux ::= LPAREN expression COLON expression RPAREN
+                        |  expression COLON expression
+                        ;
+
+statement_list ::= statement 
+                |  statement statement_list
+                ;
+
+statement ::= assignment_statement
+           |  read_statement
+           |  print_statement
+           |  function_call SEMI
+           |  if_statement
+           |  while_statement
+           |  thread_statement
+           |  wait_statement
+           |  return_statement
+           ;
+
+assignment_statement ::= identifier EQUAL list_of_expressions SEMI;
+
+read_statement ::= READ identifier SEMI;
+
+print_statement ::= PRINT expression SEMI;
+
+function_call ::= IDENTIFIER LPAREN function_call_parameters RPAREN;
+
+function_call_parameters ::= list_of_expressions
+                          |  
+                          ;
+
+if_statement ::= IF LPAREN expression RPAREN LBRACE body RBRACE if_statement_aux;
+
+if_statement_aux ::= ELIF LPAREN expression RPAREN LBRACE body RBRACE if_statement_aux
+                  |  ELSE LBRACE body RBRACE
+                  |  
+                  ;
+
+thread_statement ::= THREAD IDENTIFIER EQUAL LBRACE body RBRACE SEMI;
+
+wait_statement ::= WAIT LPAREN IDENTIFIER RPAREN SEMI;
+
+return_statement ::= RETURN expression SEMI
+                  |  RETURN SEMI
+                  ;
+
+while_statement ::=  WHILE LBRACE body_break RBRACE;
+
+body_break ::= declaration_list statement_list_break
+            |  statement_list_break
+            ;
+
+statement_list_break ::= statement_break statement_list_break 
+                      |  statement_break
+                      ;
+
+statement_break ::= break
+                 |  assignment_statement
+                 |  read_statement
+                 |  print_statement
+                 |  function_call SEMI
+                 |  if_break_statement
+                 |  while_statement
+                 |  thread_statement
+                 |  wait_statement
+                 |  return_statement
+                 ;
+
+break ::= BREAK SEMI
+       |  BREAK INTEGER SEMI
+       ;
+
+if_break_statement ::= IF LPAREN expression RPAREN LBRACE body_break RBRACE if_break_statement_aux;
+
+if_break_statement_aux ::= ELIF LPAREN expression RPAREN LBRACE body_break RBRACE if_break_statement_aux
+                        |  ELSE LBRACE body_break RBRACE
+                        |  
+                        ;
+
+list_of_expressions ::= expression
+                     |  expression COMMA list_of_expressions
+                     ;
+
+expression ::= MINUS expression
+            |  NOT expression
+            |  LENGTH LPAREN identifier RPAREN
+            |  expression math_operator expression
+            |  expression comparison_operator expression
+            |  LPAREN expression RPAREN
+            |  sequence_contents
+            |  dict_contents
+            |  list_comprehension
+            |  data_types
+            |  identifier        
+            ;
+
+math_operator ::= PLUS  
+               |  MINUS
+               |  MULT
+               |  DIV
+               |  POW
+               |  QUESTION
+               ;
+
+comparison_operator ::= LTEQ
+                     |  NOTEQ
+                     |  LT
+                     |  GT
+                     |  EQUALTO
+                     |  AND
+                     |  OR
+                     ;
+                
+list_comprehension ::= LSQB expression FOR IDENTIFIER OF RANGE LPAREN range_parameters RPAREN predicate_clause RSQB;
+
+range_parameters ::= range_parameter_expression
+                  |  range_parameter_expression COMMA range_parameter_expression
+                  |  range_parameter_expression COMMA range_parameter_expression COMMA range_parameter_expression
+                  ;
+
+range_parameter_expression ::= INTEGER
+                            |  IDENTIFIER
+                            ;
+
+predicate_clause ::= COMMA IF expression
+                  |  
+                  ;
+
+identifier ::= field_access
+            |  field_access DOT identifier
+            ;
+
+field_access ::= IDENTIFIER
+                |  IDENTIFIER LSQB expression RSQB
+                |  IDENTIFIER LSQB slice_expression RSQB
+                |  function_call
+                |  function_call LSQB expression RSQB
+                |  function_call LSQB slice_expression RSQB
+                ;
+
+slice_expression ::= expression COLON expression
+                  |  expression COLON
+                  |  COLON expression
+                  |  COLON
+                  ;

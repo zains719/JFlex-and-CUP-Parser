@@ -1,0 +1,10 @@
+---Ambiguitites---
+
+1. There is no explicit mention of the syntax of comments in the project.pdf. There are only single line comment examples in the snippets of code provided.
+   However, some of the tests invlolved multi line comments. Therefore I had to adjust the lexer and parser to satisfy multiline comments despite there being no mention of them in the pdf.
+
+2. It is not specifically clear whether the parametrs for the range function are simply restricted to integers or could also be expressions evaluauted to integers. 
+   Therefore I built my lexer and parser with the assumption of the parameter being able to accept expressions which evaluate to integers.
+
+3. There is also some slight ambiguity in regards to what is confined to a floating point number. The pdf does not detail whether an integer such as 5 could also be considered as a float. 
+   Hence, with my definition for floating point numbers I have decided to assume the latter.
